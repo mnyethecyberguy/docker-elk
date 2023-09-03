@@ -1,0 +1,52 @@
+services:
+  elasticsearch:
+    #image: docker.elastic.co/elasticsearch/elasticsearch:8.9.1
+    image: elasticsearch:8.9.1
+    container_name: elasticsearch
+    restart: always
+    volumes:
+    - elastic_data:/usr/share/elasticsearch/data/
+    environment:
+      ES_JAVA_OPTS: "-Xmx1g -Xms1g"
+      discovery.type: single-node
+    ports:
+    - 9200:9200
+    - 9300:9300
+    networks:
+      - elk
+
+  logstash:
+    image: logstash:8.9.1
+    container_name: logstash
+    restart: always
+    volumes:
+    - ./logstash/:/logstash_dir
+    command: logstash -f /logstash_dir/logstash.conf
+    depends_on:
+      - elasticsearch
+      - kibana
+    ports:
+    - 9600:9600
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk
+
+  kibana:
+    image: kibana:8.9.1
+    container_name: kibana
+    restart: always
+    ports:
+    - 5601:5601
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - elk
+
+volumes:
+  elastic_data: {}
+
+networks:
+  elk:
